@@ -1,0 +1,20 @@
+{
+  "name": "coop-portal",
+  "version": "1.0.0",
+  "description": "Co-op Portal System for CIS 425",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && node index.js",
+    "client": "cd client && npm start",
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install",
+    "init-db": "cd server && node scripts/initDatabase.js"
+  },
+  "keywords": ["co-op", "internship", "portal"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+
