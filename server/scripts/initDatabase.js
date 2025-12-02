@@ -134,12 +134,28 @@ const seedData = async () => {
         }
       );
 
-      // Create sample employer
+      // Create sample employers
       db.run(`INSERT OR IGNORE INTO employers (company_name, location, website, contact_name, contact_email, contact_phone, password_hash)
         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         ['Tech Corp', 'San Francisco, CA', 'https://techcorp.com', 'John Doe', 'employer@techcorp.com', '555-0100', hashedPassword],
         (err) => {
-          if (err) console.error('Error seeding employer:', err);
+          if (err) console.error('Error seeding employer 1:', err);
+        }
+      );
+
+      db.run(`INSERT OR IGNORE INTO employers (company_name, location, website, contact_name, contact_email, contact_phone, password_hash)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        ['DataFlow Inc', 'New York, NY', 'https://dataflow.io', 'Sarah Miller', 'hr@dataflow.io', '555-0101', hashedPassword],
+        (err) => {
+          if (err) console.error('Error seeding employer 2:', err);
+        }
+      );
+
+      db.run(`INSERT OR IGNORE INTO employers (company_name, location, website, contact_name, contact_email, contact_phone, password_hash)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        ['CloudBase Systems', 'Remote', 'https://cloudbase.com', 'Mike Chen', 'careers@cloudbase.com', '555-0102', hashedPassword],
+        (err) => {
+          if (err) console.error('Error seeding employer 3:', err);
         }
       );
 
@@ -149,6 +165,103 @@ const seedData = async () => {
         ['Alice Johnson', 'student@university.edu', '555-0200', 'Computer Science', 'Computer Science', 60, 3.5, 'Fall 2023', 0, hashedPassword],
         (err) => {
           if (err) console.error('Error seeding student:', err);
+        }
+      );
+
+      // Create sample positions
+      // Position 1: Tech Corp - Software Engineering Intern
+      db.run(`INSERT OR IGNORE INTO positions (employer_id, job_title, job_description, number_of_weeks, hours_per_week, job_location, majors_of_interest, required_skills, preferred_skills, salary_info, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [1, 'Software Engineering Intern', 
+         'Join our engineering team to work on cutting-edge web applications. You will be involved in full-stack development, code reviews, and agile sprints. Great opportunity to learn from experienced engineers and contribute to real products used by millions of users.',
+         12, 40, 'San Francisco, CA',
+         'Computer Science, Software Engineering, Information Technology',
+         'JavaScript, Python, Git',
+         'React, Node.js, SQL, AWS',
+         '$25-30/hour',
+         'open'],
+        (err) => {
+          if (err) console.error('Error seeding position 1:', err);
+        }
+      );
+
+      // Position 2: Tech Corp - Data Science Intern
+      db.run(`INSERT OR IGNORE INTO positions (employer_id, job_title, job_description, number_of_weeks, hours_per_week, job_location, majors_of_interest, required_skills, preferred_skills, salary_info, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [1, 'Data Science Intern', 
+         'Work with our data science team to analyze large datasets and build machine learning models. You will help develop predictive analytics solutions and create data visualizations for business insights.',
+         10, 35, 'San Francisco, CA',
+         'Computer Science, Data Science, Mathematics, Statistics',
+         'Python, SQL, Statistics',
+         'TensorFlow, Pandas, Tableau, R',
+         '$28-32/hour',
+         'open'],
+        (err) => {
+          if (err) console.error('Error seeding position 2:', err);
+        }
+      );
+
+      // Position 3: DataFlow Inc - Backend Developer Intern
+      db.run(`INSERT OR IGNORE INTO positions (employer_id, job_title, job_description, number_of_weeks, hours_per_week, job_location, majors_of_interest, required_skills, preferred_skills, salary_info, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [2, 'Backend Developer Intern', 
+         'Help build scalable backend services for our data processing platform. You will work with microservices architecture, RESTful APIs, and cloud infrastructure. Perfect for students interested in distributed systems.',
+         8, 40, 'New York, NY',
+         'Computer Science, Software Engineering',
+         'Java, Python, REST APIs',
+         'Spring Boot, Docker, Kubernetes, PostgreSQL',
+         '$30-35/hour',
+         'open'],
+        (err) => {
+          if (err) console.error('Error seeding position 3:', err);
+        }
+      );
+
+      // Position 4: DataFlow Inc - QA Engineering Intern
+      db.run(`INSERT OR IGNORE INTO positions (employer_id, job_title, job_description, number_of_weeks, hours_per_week, job_location, majors_of_interest, required_skills, preferred_skills, salary_info, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [2, 'QA Engineering Intern', 
+         'Join our quality assurance team to ensure software reliability. You will write automated tests, perform manual testing, and help improve our CI/CD pipelines. Great opportunity to learn software testing best practices.',
+         10, 30, 'New York, NY',
+         'Computer Science, Information Technology, Software Engineering',
+         'Testing fundamentals, Basic programming',
+         'Selenium, Jest, Python, Jenkins',
+         '$22-26/hour',
+         'open'],
+        (err) => {
+          if (err) console.error('Error seeding position 4:', err);
+        }
+      );
+
+      // Position 5: CloudBase Systems - Cloud Infrastructure Intern (Remote)
+      db.run(`INSERT OR IGNORE INTO positions (employer_id, job_title, job_description, number_of_weeks, hours_per_week, job_location, majors_of_interest, required_skills, preferred_skills, salary_info, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [3, 'Cloud Infrastructure Intern', 
+         'Remote internship opportunity to work on cloud infrastructure and DevOps practices. You will help manage AWS/Azure resources, write infrastructure-as-code, and automate deployment pipelines. Flexible hours and fully remote.',
+         12, 20, 'Remote',
+         'Computer Science, Information Technology, Cybersecurity',
+         'Linux, Basic networking, Git',
+         'AWS, Terraform, Docker, Python scripting',
+         '$24-28/hour',
+         'open'],
+        (err) => {
+          if (err) console.error('Error seeding position 5:', err);
+        }
+      );
+
+      // Position 6: CloudBase Systems - Frontend Developer Intern (Remote)
+      db.run(`INSERT OR IGNORE INTO positions (employer_id, job_title, job_description, number_of_weeks, hours_per_week, job_location, majors_of_interest, required_skills, preferred_skills, salary_info, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [3, 'Frontend Developer Intern', 
+         'Build beautiful and responsive user interfaces for our cloud management dashboard. You will work with modern frontend frameworks and collaborate with UX designers. Remote position with flexible scheduling.',
+         10, 25, 'Remote',
+         'Computer Science, Web Development, Design',
+         'HTML, CSS, JavaScript',
+         'React, TypeScript, Tailwind CSS, Figma',
+         '$23-27/hour',
+         'open'],
+        (err) => {
+          if (err) console.error('Error seeding position 6:', err);
           else resolve();
         }
       );

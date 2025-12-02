@@ -33,10 +33,13 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/auth/login', { email, password, role });
       const { token, user: userData } = response.data;
       
+      // Include the role in the user object
+      const userWithRole = { ...userData, role };
+      
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('user', JSON.stringify(userWithRole));
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser(userData);
+      setUser(userWithRole);
       
       return { success: true };
     } catch (error) {
@@ -53,10 +56,13 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post(endpoint, data);
       const { token, user: userData } = response.data;
       
+      // Include the role in the user object
+      const userWithRole = { ...userData, role };
+      
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('user', JSON.stringify(userWithRole));
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser(userData);
+      setUser(userWithRole);
       
       return { success: true };
     } catch (error) {
