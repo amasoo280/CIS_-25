@@ -24,11 +24,17 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Unauthorized - clear auth and redirect to login
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      // Unauthorized or Forbidden - clear auth and redirect to login
+      console.log('Auth error detected, clearing session...');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      if (window.location.pathname !== '/login') {
+      delete axios.defaults.headers.common['Authorization'];
+      
+      // Only redirect if not already on login page
+      if (window.location.pathname !== '/login' && 
+          !window.location.pathname.startsWith('/register') &&
+          !window.location.pathname.startsWith('/positions')) {
         window.location.href = '/login';
       }
     }
@@ -37,4 +43,3 @@ api.interceptors.response.use(
 );
 
 export default api;
-

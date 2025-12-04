@@ -5,6 +5,7 @@ import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import RegisterStudent from './pages/RegisterStudent';
 import RegisterEmployer from './pages/RegisterEmployer';
+import RegisterFaculty from './pages/RegisterFaculty';
 import StudentDashboard from './pages/StudentDashboard';
 import EmployerDashboard from './pages/EmployerDashboard';
 import FacultyDashboard from './pages/FacultyDashboard';
@@ -12,6 +13,7 @@ import PositionSearch from './pages/PositionSearch';
 import PositionDetail from './pages/PositionDetail';
 import StudentProfile from './pages/StudentProfile';
 import EmployerProfile from './pages/EmployerProfile';
+import FacultyProfile from './pages/FacultyProfile';
 import './App.css';
 
 function PrivateRoute({ children, allowedRoles }) {
@@ -40,6 +42,7 @@ function AppRoutes() {
       <Route path="/login" element={!user ? <Login /> : <Navigate to={`/${user.role}/dashboard`} />} />
       <Route path="/register/student" element={<RegisterStudent />} />
       <Route path="/register/employer" element={<RegisterEmployer />} />
+      <Route path="/register/faculty" element={<RegisterFaculty />} />
       
       <Route path="/positions" element={<PositionSearch />} />
       <Route path="/positions/:id" element={<PositionDetail />} />
@@ -86,6 +89,14 @@ function AppRoutes() {
           </PrivateRoute>
         } 
       />
+      <Route 
+        path="/faculty/profile" 
+        element={
+          <PrivateRoute allowedRoles={['faculty']}>
+            <FacultyProfile />
+          </PrivateRoute>
+        } 
+      />
       
       <Route path="/" element={<Navigate to="/positions" />} />
     </Routes>
@@ -106,4 +117,3 @@ function App() {
 }
 
 export default App;
-
