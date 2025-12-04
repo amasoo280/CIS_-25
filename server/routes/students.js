@@ -72,4 +72,3 @@ router.put('/resume', authenticateToken, requireRole('student'), (req, res) => {
 });
 
 module.exports = router;
-

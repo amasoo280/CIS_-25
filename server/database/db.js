@@ -34,4 +34,3 @@ function closeDB() {
 }
 
 module.exports = { getDB, closeDB };
-

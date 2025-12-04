@@ -34,9 +34,10 @@ const upload = multer({
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = allowedTypes.test(file.mimetype) || 
                      file.mimetype === 'application/msword' ||
-                     file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+                     file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+                     file.mimetype === 'application/pdf';
 
-    if (extname && mimetype) {
+    if (extname || mimetype) {
       return cb(null, true);
     } else {
       cb(new Error('Only PDF, DOC, and DOCX files are allowed'));
@@ -50,6 +51,8 @@ router.post('/resume', authenticateToken, upload.single('resume'), (req, res) =>
     return res.status(400).json({ error: 'No file uploaded' });
   }
 
+  // Return the file path that can be used to access the file
+  // This path will be prefixed with the server URL on the frontend
   const filePath = `/uploads/${req.file.filename}`;
   res.json({
     message: 'Resume uploaded successfully',
@@ -72,5 +75,18 @@ router.post('/offer-letter', authenticateToken, upload.single('offer_letter'), (
   });
 });
 
-module.exports = router;
+// Error handling for multer
+router.use((error, req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'File too large. Maximum size is 10MB.' });
+    }
+    return res.status(400).json({ error: error.message });
+  }
+  if (error) {
+    return res.status(400).json({ error: error.message });
+  }
+  next();
+});
 
+module.exports = router;

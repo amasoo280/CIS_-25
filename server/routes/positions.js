@@ -1,10 +1,56 @@
 const express = require('express');
 const { getDB } = require('../database/db');
 const { authenticateToken, requireRole } = require('../middleware/auth');
-const { checkCoopEligibility } = require('../services/eligibilityService');
-const { sendEligibilityNotification } = require('../services/emailService');
 
 const router = express.Router();
+
+/**
+ * Co-op Eligibility Check
+ * Requirements:
+ * - Minimum GPA of 2.0
+ * - Internship must be at least 7 weeks
+ * - Total hours must be at least 140 (weeks * hours_per_week >= 140)
+ * - Transfer students: must have completed at least ONE semester (15 credit hours)
+ * - Non-transfer students: must have completed at least TWO semesters (30 credit hours)
+ */
+function checkCoopEligibility(student, position) {
+  const reasons = [];
+
+  // Check GPA
+  if (student.gpa < 2.0) {
+    reasons.push(`GPA ${student.gpa} is below minimum requirement of 2.0`);
+  }
+
+  // Check weeks
+  if (position.number_of_weeks < 7) {
+    reasons.push(`Internship duration of ${position.number_of_weeks} weeks is below minimum requirement of 7 weeks`);
+  }
+
+  // Check total hours
+  const totalHours = position.number_of_weeks * position.hours_per_week;
+  if (totalHours < 140) {
+    reasons.push(`Total hours ${totalHours} is below minimum requirement of 140 hours`);
+  }
+
+  // Check semester requirement based on transfer status
+  // Using credit_hours as a proxy for semesters completed (~15 credit hours per semester)
+  const estimatedSemesters = Math.floor(student.credit_hours / 15);
+  
+  if (student.is_transfer) {
+    if (estimatedSemesters < 1) {
+      reasons.push(`Transfer student must have completed at least one semester at the college (need 15+ credit hours)`);
+    }
+  } else {
+    if (estimatedSemesters < 2) {
+      reasons.push(`Non-transfer student must have completed at least two semesters at the college (need 30+ credit hours)`);
+    }
+  }
+
+  return {
+    eligible: reasons.length === 0,
+    reason: reasons.length > 0 ? reasons.join('; ') : null
+  };
+}
 
 // Get all positions (with optional filters)
 router.get('/', (req, res) => {
@@ -226,29 +272,29 @@ router.post('/:id/select-student', authenticateToken, requireRole('employer'), a
             );
 
             // Create or update co-op enrollment record
+            // IMPORTANT: The department is taken from the student's profile
             db.run(
               `INSERT OR REPLACE INTO coop_enrollments 
                (student_id, position_id, eligibility_result, eligibility_reason, department)
                VALUES (?, ?, ?, ?, ?)`,
               [student_id, positionId, eligibility.eligible ? 'eligible' : 'ineligible', 
                eligibility.reason, student.department],
-              async function(enrollErr) {
+              function(enrollErr) {
                 if (enrollErr) {
                   console.error('Error creating enrollment:', enrollErr);
                 }
 
-                // If eligible, send notification
+                // Log notification (in production, would send actual email)
                 if (eligibility.eligible) {
-                  try {
-                    await sendEligibilityNotification(
-                      student.email,
-                      student.full_name,
-                      position.job_title,
-                      'Company' // Could fetch employer name if needed
-                    );
-                  } catch (emailErr) {
-                    console.error('Error sending email:', emailErr);
-                  }
+                  console.log('='.repeat(60));
+                  console.log('EMAIL NOTIFICATION - CO-OP ELIGIBILITY');
+                  console.log('='.repeat(60));
+                  console.log(`To: ${student.email}`);
+                  console.log(`Subject: Co-op Eligibility Notification`);
+                  console.log(`\nDear ${student.full_name},`);
+                  console.log(`\nCongratulations! You have been selected for the position "${position.job_title}" and are ELIGIBLE for co-op credit.`);
+                  console.log(`\nPlease log in to the Co-op Portal to indicate whether you would like to receive co-op credit.`);
+                  console.log('='.repeat(60));
                 }
 
                 res.json({
@@ -266,4 +312,3 @@ router.post('/:id/select-student', authenticateToken, requireRole('employer'), a
 });
 
 module.exports = router;
-
