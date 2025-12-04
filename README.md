@@ -92,6 +92,11 @@ This will:
 - **Employer**: `employer@techcorp.com`
 - **Student**: `student@university.edu`
 
+**Extra Login Credentials**
+- **Faulty**: 'julie@usa.com' password: 'Demo123'
+- **Employer**: 'hope@jen.com' password: 'Demo123'
+- **Student**: 'bcalli@umich.edu' password: 'testingThisPassword$12'
+
 ### Step 3: Start the Application
 
 **Option 1: Run both server and client together**
