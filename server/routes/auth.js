@@ -219,5 +219,76 @@ router.post('/register/employer', async (req, res) => {
   }
 });
 
-module.exports = router;
+// Register faculty coordinator
+router.post('/register/faculty', async (req, res) => {
+  try {
+    const {
+      full_name,
+      email,
+      department,
+      password
+    } = req.body;
 
+    if (!full_name || !email || !department || !password) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const db = getDB();
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Check if department already has a coordinator
+    db.get('SELECT * FROM faculty WHERE department = ?', [department], (err, existing) => {
+      if (err) {
+        return res.status(500).json({ error: 'Database error' });
+      }
+      if (existing) {
+        return res.status(400).json({ error: 'A coordinator already exists for this department' });
+      }
+
+      db.run(
+        `INSERT INTO faculty (full_name, email, department, password_hash)
+         VALUES (?, ?, ?, ?)`,
+        [full_name, email, department, passwordHash],
+        function(insertErr) {
+          if (insertErr) {
+            if (insertErr.message.includes('UNIQUE constraint')) {
+              if (insertErr.message.includes('email')) {
+                return res.status(400).json({ error: 'Email already registered' });
+              }
+              if (insertErr.message.includes('department')) {
+                return res.status(400).json({ error: 'A coordinator already exists for this department' });
+              }
+            }
+            return res.status(500).json({ error: 'Database error' });
+          }
+
+          // Generate token
+          const token = jwt.sign(
+            {
+              id: this.lastID,
+              email: email,
+              role: 'faculty'
+            },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+          );
+
+          res.status(201).json({
+            token,
+            user: {
+              faculty_id: this.lastID,
+              full_name,
+              email,
+              department
+            },
+            role: 'faculty'
+          });
+        }
+      );
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+module.exports = router;

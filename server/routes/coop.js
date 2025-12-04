@@ -129,4 +129,3 @@ router.post('/summary', authenticateToken, requireRole('student'), (req, res) =>
 });
 
 module.exports = router;
-

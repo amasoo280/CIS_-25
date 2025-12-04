@@ -1,5 +1,4 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import axios from 'axios';
 import api from '../utils/api';
 
 const AuthContext = createContext();
@@ -22,8 +21,14 @@ export const AuthProvider = ({ children }) => {
     const userData = localStorage.getItem('user');
     
     if (token && userData) {
-      setUser(JSON.parse(userData));
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      try {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+      } catch (e) {
+        // Invalid user data, clear it
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
     }
     setLoading(false);
   }, []);
@@ -38,7 +43,6 @@ export const AuthProvider = ({ children }) => {
       
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(userWithRole));
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(userWithRole);
       
       return { success: true };
@@ -52,7 +56,21 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (data, role) => {
     try {
-      const endpoint = role === 'student' ? '/auth/register/student' : '/auth/register/employer';
+      let endpoint;
+      switch (role) {
+        case 'student':
+          endpoint = '/auth/register/student';
+          break;
+        case 'employer':
+          endpoint = '/auth/register/employer';
+          break;
+        case 'faculty':
+          endpoint = '/auth/register/faculty';
+          break;
+        default:
+          return { success: false, error: 'Invalid role' };
+      }
+      
       const response = await api.post(endpoint, data);
       const { token, user: userData } = response.data;
       
@@ -61,7 +79,6 @@ export const AuthProvider = ({ children }) => {
       
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(userWithRole));
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       setUser(userWithRole);
       
       return { success: true };
@@ -76,7 +93,6 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    delete axios.defaults.headers.common['Authorization'];
     setUser(null);
   };
 
@@ -90,4 +106,3 @@ export const AuthProvider = ({ children }) => {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
-

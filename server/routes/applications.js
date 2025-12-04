@@ -14,34 +14,44 @@ router.post('/', authenticateToken, requireRole('student'), (req, res) => {
 
   const db = getDB();
 
-  // Check if already applied
-  db.get(
-    'SELECT * FROM applications WHERE student_id = ? AND position_id = ?',
-    [req.user.id, position_id],
-    (err, existing) => {
-      if (err) {
-        return res.status(500).json({ error: 'Database error' });
-      }
-      if (existing) {
-        return res.status(400).json({ error: 'Already applied to this position' });
-      }
-
-      // Create application
-      db.run(
-        'INSERT INTO applications (student_id, position_id, status) VALUES (?, ?, ?)',
-        [req.user.id, position_id, 'applied'],
-        function(insertErr) {
-          if (insertErr) {
-            return res.status(500).json({ error: 'Database error' });
-          }
-          res.status(201).json({
-            application_id: this.lastID,
-            message: 'Application submitted successfully'
-          });
-        }
-      );
+  // Check if position exists and is open
+  db.get('SELECT * FROM positions WHERE position_id = ? AND status = ?', [position_id, 'open'], (err, position) => {
+    if (err) {
+      return res.status(500).json({ error: 'Database error' });
     }
-  );
+    if (!position) {
+      return res.status(400).json({ error: 'Position not found or not open for applications' });
+    }
+
+    // Check if already applied
+    db.get(
+      'SELECT * FROM applications WHERE student_id = ? AND position_id = ?',
+      [req.user.id, position_id],
+      (err, existing) => {
+        if (err) {
+          return res.status(500).json({ error: 'Database error' });
+        }
+        if (existing) {
+          return res.status(400).json({ error: 'Already applied to this position' });
+        }
+
+        // Create application
+        db.run(
+          'INSERT INTO applications (student_id, position_id, status) VALUES (?, ?, ?)',
+          [req.user.id, position_id, 'applied'],
+          function(insertErr) {
+            if (insertErr) {
+              return res.status(500).json({ error: 'Database error' });
+            }
+            res.status(201).json({
+              application_id: this.lastID,
+              message: 'Application submitted successfully'
+            });
+          }
+        );
+      }
+    );
+  });
 });
 
 // Get student's applications
@@ -83,7 +93,7 @@ router.get('/position/:positionId', authenticateToken, requireRole('employer'), 
     }
 
     db.all(
-      `SELECT a.*, s.full_name, s.email, s.phone, s.department, s.major, s.gpa, 
+      `SELECT a.*, s.student_id, s.full_name, s.email, s.phone, s.department, s.major, s.gpa, 
        s.credit_hours, s.resume_path, s.semester_started, s.is_transfer
        FROM applications a
        JOIN students s ON a.student_id = s.student_id
@@ -143,4 +153,3 @@ router.put('/:id/status', authenticateToken, requireRole('employer'), (req, res)
 });
 
 module.exports = router;
-

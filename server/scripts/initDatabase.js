@@ -1,7 +1,23 @@
-const { getDB, closeDB } = require('../database/db');
+const sqlite3 = require('sqlite3').verbose();
+const path = require('path');
 const bcrypt = require('bcryptjs');
 
-const db = getDB();
+const DB_PATH = path.join(__dirname, '../database/coop_portal.db');
+
+// Ensure database directory exists
+const fs = require('fs');
+const dbDir = path.join(__dirname, '../database');
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+const db = new sqlite3.Database(DB_PATH, (err) => {
+  if (err) {
+    console.error('Error opening database:', err.message);
+    process.exit(1);
+  }
+  console.log('Connected to SQLite database');
+});
 
 // Create all tables
 const createTables = () => {
@@ -19,10 +35,10 @@ const createTables = () => {
         password_hash TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`, (err) => {
-        if (err) reject(err);
+        if (err) console.error('Error creating employers table:', err);
       });
 
-      // Faculty coordinators table
+      // Faculty coordinators table - one per department
       db.run(`CREATE TABLE IF NOT EXISTS faculty (
         faculty_id INTEGER PRIMARY KEY AUTOINCREMENT,
         full_name TEXT NOT NULL,
@@ -31,7 +47,7 @@ const createTables = () => {
         password_hash TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`, (err) => {
-        if (err) reject(err);
+        if (err) console.error('Error creating faculty table:', err);
       });
 
       // Students table
@@ -50,7 +66,7 @@ const createTables = () => {
         password_hash TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`, (err) => {
-        if (err) reject(err);
+        if (err) console.error('Error creating students table:', err);
       });
 
       // Positions table
@@ -73,7 +89,7 @@ const createTables = () => {
         FOREIGN KEY (employer_id) REFERENCES employers(employer_id),
         FOREIGN KEY (selected_student_id) REFERENCES students(student_id)
       )`, (err) => {
-        if (err) reject(err);
+        if (err) console.error('Error creating positions table:', err);
       });
 
       // Applications table
@@ -88,7 +104,7 @@ const createTables = () => {
         FOREIGN KEY (position_id) REFERENCES positions(position_id),
         UNIQUE(student_id, position_id)
       )`, (err) => {
-        if (err) reject(err);
+        if (err) console.error('Error creating applications table:', err);
       });
 
       // Co-op enrollment table
@@ -108,7 +124,20 @@ const createTables = () => {
         FOREIGN KEY (position_id) REFERENCES positions(position_id),
         UNIQUE(student_id, position_id)
       )`, (err) => {
-        if (err) reject(err);
+        if (err) console.error('Error creating coop_enrollments table:', err);
+      });
+
+      // Employer comments table (for feedback on co-op summaries)
+      db.run(`CREATE TABLE IF NOT EXISTS employer_comments (
+        comment_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        enrollment_id INTEGER NOT NULL,
+        employer_id INTEGER NOT NULL,
+        comment_text TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (enrollment_id) REFERENCES coop_enrollments(enrollment_id),
+        FOREIGN KEY (employer_id) REFERENCES employers(employer_id)
+      )`, (err) => {
+        if (err) console.error('Error creating employer_comments table:', err);
       });
 
       db.run('PRAGMA foreign_keys = ON', (err) => {
@@ -125,7 +154,7 @@ const seedData = async () => {
   
   return new Promise((resolve, reject) => {
     db.serialize(() => {
-      // Create sample faculty coordinator
+      // Create sample faculty coordinator for Computer Science
       db.run(`INSERT OR IGNORE INTO faculty (full_name, email, department, password_hash)
         VALUES (?, ?, ?, ?)`,
         ['Dr. Jane Smith', 'faculty@university.edu', 'Computer Science', hashedPassword],
@@ -159,7 +188,7 @@ const seedData = async () => {
         }
       );
 
-      // Create sample student
+      // Create sample student (in Computer Science department - matches faculty coordinator)
       db.run(`INSERT OR IGNORE INTO students (full_name, email, phone, department, major, credit_hours, gpa, semester_started, is_transfer, password_hash)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         ['Alice Johnson', 'student@university.edu', '555-0200', 'Computer Science', 'Computer Science', 60, 3.5, 'Fall 2023', 0, hashedPassword],
@@ -169,11 +198,10 @@ const seedData = async () => {
       );
 
       // Create sample positions
-      // Position 1: Tech Corp - Software Engineering Intern
       db.run(`INSERT OR IGNORE INTO positions (employer_id, job_title, job_description, number_of_weeks, hours_per_week, job_location, majors_of_interest, required_skills, preferred_skills, salary_info, status)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [1, 'Software Engineering Intern', 
-         'Join our engineering team to work on cutting-edge web applications. You will be involved in full-stack development, code reviews, and agile sprints. Great opportunity to learn from experienced engineers and contribute to real products used by millions of users.',
+         'Join our engineering team to work on cutting-edge web applications. You will be involved in full-stack development, code reviews, and agile sprints.',
          12, 40, 'San Francisco, CA',
          'Computer Science, Software Engineering, Information Technology',
          'JavaScript, Python, Git',
@@ -185,11 +213,10 @@ const seedData = async () => {
         }
       );
 
-      // Position 2: Tech Corp - Data Science Intern
       db.run(`INSERT OR IGNORE INTO positions (employer_id, job_title, job_description, number_of_weeks, hours_per_week, job_location, majors_of_interest, required_skills, preferred_skills, salary_info, status)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [1, 'Data Science Intern', 
-         'Work with our data science team to analyze large datasets and build machine learning models. You will help develop predictive analytics solutions and create data visualizations for business insights.',
+         'Work with our data science team to analyze large datasets and build machine learning models.',
          10, 35, 'San Francisco, CA',
          'Computer Science, Data Science, Mathematics, Statistics',
          'Python, SQL, Statistics',
@@ -201,11 +228,10 @@ const seedData = async () => {
         }
       );
 
-      // Position 3: DataFlow Inc - Backend Developer Intern
       db.run(`INSERT OR IGNORE INTO positions (employer_id, job_title, job_description, number_of_weeks, hours_per_week, job_location, majors_of_interest, required_skills, preferred_skills, salary_info, status)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [2, 'Backend Developer Intern', 
-         'Help build scalable backend services for our data processing platform. You will work with microservices architecture, RESTful APIs, and cloud infrastructure. Perfect for students interested in distributed systems.',
+         'Help build scalable backend services for our data processing platform.',
          8, 40, 'New York, NY',
          'Computer Science, Software Engineering',
          'Java, Python, REST APIs',
@@ -217,27 +243,10 @@ const seedData = async () => {
         }
       );
 
-      // Position 4: DataFlow Inc - QA Engineering Intern
-      db.run(`INSERT OR IGNORE INTO positions (employer_id, job_title, job_description, number_of_weeks, hours_per_week, job_location, majors_of_interest, required_skills, preferred_skills, salary_info, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [2, 'QA Engineering Intern', 
-         'Join our quality assurance team to ensure software reliability. You will write automated tests, perform manual testing, and help improve our CI/CD pipelines. Great opportunity to learn software testing best practices.',
-         10, 30, 'New York, NY',
-         'Computer Science, Information Technology, Software Engineering',
-         'Testing fundamentals, Basic programming',
-         'Selenium, Jest, Python, Jenkins',
-         '$22-26/hour',
-         'open'],
-        (err) => {
-          if (err) console.error('Error seeding position 4:', err);
-        }
-      );
-
-      // Position 5: CloudBase Systems - Cloud Infrastructure Intern (Remote)
       db.run(`INSERT OR IGNORE INTO positions (employer_id, job_title, job_description, number_of_weeks, hours_per_week, job_location, majors_of_interest, required_skills, preferred_skills, salary_info, status)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [3, 'Cloud Infrastructure Intern', 
-         'Remote internship opportunity to work on cloud infrastructure and DevOps practices. You will help manage AWS/Azure resources, write infrastructure-as-code, and automate deployment pipelines. Flexible hours and fully remote.',
+         'Remote internship to work on cloud infrastructure and DevOps practices.',
          12, 20, 'Remote',
          'Computer Science, Information Technology, Cybersecurity',
          'Linux, Basic networking, Git',
@@ -245,23 +254,7 @@ const seedData = async () => {
          '$24-28/hour',
          'open'],
         (err) => {
-          if (err) console.error('Error seeding position 5:', err);
-        }
-      );
-
-      // Position 6: CloudBase Systems - Frontend Developer Intern (Remote)
-      db.run(`INSERT OR IGNORE INTO positions (employer_id, job_title, job_description, number_of_weeks, hours_per_week, job_location, majors_of_interest, required_skills, preferred_skills, salary_info, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [3, 'Frontend Developer Intern', 
-         'Build beautiful and responsive user interfaces for our cloud management dashboard. You will work with modern frontend frameworks and collaborate with UX designers. Remote position with flexible scheduling.',
-         10, 25, 'Remote',
-         'Computer Science, Web Development, Design',
-         'HTML, CSS, JavaScript',
-         'React, TypeScript, Tailwind CSS, Figma',
-         '$23-27/hour',
-         'open'],
-        (err) => {
-          if (err) console.error('Error seeding position 6:', err);
+          if (err) console.error('Error seeding position 4:', err);
           else resolve();
         }
       );
@@ -277,18 +270,25 @@ const seedData = async () => {
     console.log('Tables created successfully');
     await seedData();
     console.log('Sample data seeded');
-    console.log('\nDefault login credentials (all roles):');
-    console.log('Email: varies by role');
+    console.log('\n========================================');
+    console.log('Default login credentials (all roles):');
     console.log('Password: password123');
     console.log('\nSample accounts:');
-    console.log('- Faculty: faculty@university.edu');
+    console.log('- Faculty: faculty@university.edu (Computer Science dept)');
     console.log('- Employer: employer@techcorp.com');
-    console.log('- Student: student@university.edu');
-    closeDB();
+    console.log('- Student: student@university.edu (Computer Science dept)');
+    console.log('========================================\n');
+    
+    db.close((err) => {
+      if (err) {
+        console.error('Error closing database:', err.message);
+      } else {
+        console.log('Database connection closed');
+      }
+    });
   } catch (error) {
     console.error('Error initializing database:', error);
-    closeDB();
+    db.close();
     process.exit(1);
   }
 })();
-
